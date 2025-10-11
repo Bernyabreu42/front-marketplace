@@ -1,0 +1,115 @@
+import type { PaginatedResponse } from "@/features/users/types";
+
+export interface OrderProduct {
+  id: string;
+  name: string;
+  price: number;
+  priceFinal: number;
+  images: string[];
+}
+
+export interface OrderItem {
+  id: string;
+  quantity: number;
+  product: OrderProduct;
+}
+
+export interface OrderStore {
+  id: string;
+  name: string | null;
+  ownerId: string;
+}
+
+export interface OrderSummary {
+  id: string;
+  total: number;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  store: OrderStore | null;
+  items: OrderItem[];
+}
+
+export type OrdersResponse = PaginatedResponse<OrderSummary>;
+
+export interface OrderUser {
+  id: string;
+  firstName: string | null;
+  email: string;
+}
+
+export interface Order {
+  id: string;
+  userId: string;
+  storeId: string;
+  total: number;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  items: OrderItem[];
+  store: OrderStore | null;
+  user: OrderUser;
+}
+
+export interface OrderResponse {
+  success: boolean;
+  message: string;
+  data: Order;
+}
+
+
+export interface LoyaltyAccount {
+  id: string;
+  userId: string;
+  balance: number;
+  lifetimeEarned: number;
+  lifetimeRedeemed: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LoyaltyAction {
+  id: string;
+  key: string;
+  name: string;
+  description: string | null;
+  defaultPoints: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LoyaltyTransaction {
+  id: string;
+  accountId: string;
+  userId: string;
+  points: number;
+  description: string | null;
+  referenceType: string | null;
+  referenceId: string | null;
+  metadata?: unknown;
+  actionId?: string | null;
+  action?: LoyaltyAction | null;
+  createdAt: string;
+}
+
+export interface LoyaltyAccountPayload {
+  account: LoyaltyAccount;
+  transactions: LoyaltyTransaction[];
+  redeemablePoints: number;
+  redeemableAmount: number;
+}
+
+export interface LoyaltyAccountResponse {
+  success: boolean;
+  message: string;
+  data: LoyaltyAccountPayload;
+}
+
+export interface OrdersQuery {
+  page?: number;
+  limit?: number;
+  status?: string;
+  [key: string]: string | number | boolean | undefined;
+}
+
