@@ -2,6 +2,8 @@ import type {
   CategoriesResponse,
   CategorySummary,
   StoreBusinessHoursValue,
+  TaxItem,
+  TaxesResponse,
 } from "@/features/seller/types";
 
 export interface PaginationMeta {

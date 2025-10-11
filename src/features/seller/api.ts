@@ -28,6 +28,10 @@ import type {
   UpdateShippingMethodPayload,
   UpdateTaxPayload,
   CreateStorePayload,
+  OrdersQuery,
+  SellerOrdersResponse,
+  SellerOrderResponse,
+  OrderStatus,
 } from "./types";
 
 export const fetchStoreDetails = (storeId: string) =>

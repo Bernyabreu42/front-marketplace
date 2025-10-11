@@ -40,7 +40,7 @@ export function ShippingMethodForm({
     if (defaultValues) {
       setFormState({
         name: defaultValues.name,
-        cost: String(defaultValues.price ?? ""),
+        cost: String(defaultValues.cost ?? ""),
         description: defaultValues.description ?? "",
       });
     } else {
@@ -113,7 +113,7 @@ export function ShippingMethodForm({
         <Label htmlFor="shipping-price">Precio</Label>
         <Input
           id="shipping-price"
-          name="price"
+          name="cost"
           type="number"
           step="0.01"
           min="0"

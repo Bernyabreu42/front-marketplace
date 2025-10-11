@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -19,16 +19,14 @@ import { useImageUrlResolver } from "@/hooks/use-image-url";
 import { fetchUserById } from "@/features/users/api";
 import { getApiErrorMessage } from "@/lib/utils";
 import { CategoryMultiSelect } from "./components/CategoryMultiSelect";
-import { useCategories, useStoreDiscounts, useStorePromotions, useStoreTaxes } from "./hooks";
 import {
-  createProduct,
-  uploadImage,
-  createRelatedProducts,
-} from "./api";
-import type {
-  CreateProductPayload,
-  ProductListItem,
-} from "./types";
+  useCategories,
+  useStoreDiscounts,
+  useStorePromotions,
+  useStoreTaxes,
+} from "./hooks";
+import { createProduct, uploadImage, createRelatedProducts } from "./api";
+import type { CreateProductPayload, ProductListItem } from "./types";
 
 const MAX_PRODUCT_IMAGES = 5;
 const PRODUCT_STATUS_OPTIONS = [
@@ -141,7 +139,9 @@ export function SellerProductCreatePage() {
 
   const selectedDiscount = useMemo(() => {
     if (!form.discountId) return undefined;
-    return availableDiscounts.find((discount) => discount.id === form.discountId);
+    return availableDiscounts.find(
+      (discount) => discount.id === form.discountId
+    );
   }, [availableDiscounts, form.discountId]);
 
   const computedFinalPrice = useMemo(() => {
@@ -164,9 +164,7 @@ export function SellerProductCreatePage() {
       const response = await createProduct(payload);
 
       if (!response.success || !response.data) {
-        throw new Error(
-          response.message ?? "No se pudo crear el producto"
-        );
+        throw new Error(response.message ?? "No se pudo crear el producto");
       }
 
       if (related.length > 0) {
@@ -245,7 +243,9 @@ export function SellerProductCreatePage() {
     if (!file) return;
 
     if (imageUrls.length >= MAX_PRODUCT_IMAGES) {
-      toast.error(`Solo puedes subir ${MAX_PRODUCT_IMAGES} imagenes por producto`);
+      toast.error(
+        `Solo puedes subir ${MAX_PRODUCT_IMAGES} imagenes por producto`
+      );
       event.target.value = "";
       return;
     }
@@ -396,7 +396,10 @@ export function SellerProductCreatePage() {
               <div className="space-y-2">
                 <Label htmlFor="product-description">Descripcion *</Label>
                 <div className="rounded-md border">
-                  <Editor ref={editorRef} placeholder="Describe tu producto..." />
+                  <Editor
+                    ref={editorRef}
+                    placeholder="Describe tu producto..."
+                  />
                 </div>
               </div>
             </CardContent>
@@ -450,13 +453,12 @@ export function SellerProductCreatePage() {
                 </p>
                 <p className="text-2xl font-semibold text-primary">
                   {formatCurrency(
-                    Number.isFinite(computedFinalPrice)
-                      ? computedFinalPrice
-                      : 0
+                    Number.isFinite(computedFinalPrice) ? computedFinalPrice : 0
                   )}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  El precio final se calcula automaticamente considerando impuestos, promociones y descuentos activos.
+                  El precio final se calcula automaticamente considerando
+                  impuestos, promociones y descuentos activos.
                 </p>
               </div>
             </CardContent>
@@ -577,11 +579,12 @@ export function SellerProductCreatePage() {
                           <span className="block text-xs text-muted-foreground">
                             {promotion.type === "coupon" && promotion.code
                               ? `Codigo ${promotion.code}`
-                              : promotion.value !== null && promotion.value !== undefined
-                                ? promotion.type === "automatic"
-                                  ? `Valor ${promotion.value}%`
-                                  : `Valor ${promotion.value}`
-                                : "Sin valor definido"}
+                              : promotion.value !== null &&
+                                promotion.value !== undefined
+                              ? promotion.type === "automatic"
+                                ? `Valor ${promotion.value}%`
+                                : `Valor ${promotion.value}`
+                              : "Sin valor definido"}
                           </span>
                         </span>
                         <input
@@ -638,9 +641,13 @@ export function SellerProductCreatePage() {
                         className="flex items-center justify-between gap-3 text-sm"
                       >
                         <span className="flex flex-col">
-                          <span className="font-medium text-foreground">{tax.name}</span>
+                          <span className="font-medium text-foreground">
+                            {tax.name}
+                          </span>
                           <span className="text-xs text-muted-foreground">
-                            {tax.type === "percentage" ? `${tax.rate}%` : `RD$ ${tax.rate}`}
+                            {tax.type === "percentage"
+                              ? `${tax.rate}%`
+                              : `RD$ ${tax.rate}`}
                           </span>
                         </span>
                         <input
@@ -731,7 +738,12 @@ export function SellerProductCreatePage() {
       </div>
 
       <div className="mt-8 flex flex-col gap-3 border-t pt-6 sm:flex-row sm:justify-end">
-        <Button type="button" variant="outline" asChild className="w-full sm:w-auto">
+        <Button
+          type="button"
+          variant="outline"
+          asChild
+          className="w-full sm:w-auto"
+        >
           <Link to="/dashboard/seller/products">Cancelar</Link>
         </Button>
         <Button
@@ -745,15 +757,3 @@ export function SellerProductCreatePage() {
     </form>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-

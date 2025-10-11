@@ -248,7 +248,7 @@ export interface ShippingMethod {
   id: string;
   name: string;
   description: string | null;
-  price: number;
+  cost: number;
   storeId: string;
   createdAt: string;
   updatedAt: string;
@@ -278,6 +278,7 @@ export interface OrdersQuery {
   limit?: number;
   status?: string;
   search?: string;
+  [key: string]: string | number | boolean | undefined;
 }
 
 export type OrderStatus =

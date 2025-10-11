@@ -1,6 +1,6 @@
 // Editor.tsx
 import Quill from "quill";
-import React, { forwardRef, useEffect, useLayoutEffect, useRef } from "react";
+import { forwardRef, useEffect, useLayoutEffect, useRef } from "react";
 
 // Editor is an uncontrolled React component
 interface EditorProps {
@@ -17,7 +17,6 @@ const Editor = forwardRef<Quill | null, EditorProps>(
     ref
   ) => {
     const containerRef = useRef<HTMLInputElement>(null);
-    const defaultValueRef = useRef(defaultValue);
     const onTextChangeRef = useRef(onTextChange);
     const onSelectionChangeRef = useRef(onSelectionChange);
 
