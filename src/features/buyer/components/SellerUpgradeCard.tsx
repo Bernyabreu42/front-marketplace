@@ -42,7 +42,7 @@ export function SellerUpgradeCard({
   return (
     <>
       <Dialog open={open} onOpenChange={setOpen}>
-        <Card className="border-primary/40">
+        <Card className="border-primary/40 ">
           <CardHeader className="space-y-2">
             <CardTitle className="text-base font-semibold">
               {upgrade.headline}

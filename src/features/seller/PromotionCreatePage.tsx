@@ -25,7 +25,7 @@ type PromotionFormState = {
 const initialForm: PromotionFormState = {
   name: "",
   description: "",
-  type: "automatic",
+  type: "coupon",
   value: "",
   code: "",
   startsAt: "",

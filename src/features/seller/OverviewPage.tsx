@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { fetchUserById } from "@/features/users/api";
 import { useSellerStore, useStoreDiscounts, useStoreProducts, useStorePromotions, useStoreTaxes } from "./hooks";
+import { formatStoreAddress } from "./utils/address";
 
 const STORE_STATUS_META: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   pending: { label: "Pendiente", variant: "secondary" },
@@ -142,7 +143,9 @@ export function SellerOverviewPage() {
                   </div>
                   <div>
                     <p className="text-xs uppercase text-muted-foreground">Direccion</p>
-                    <p className="text-foreground">{store.address ?? "No definida"}</p>
+                    <p className="text-foreground">
+                      {formatStoreAddress(store.address ?? null) || "No definida"}
+                    </p>
                   </div>
                   <div>
                     <p className="text-xs uppercase text-muted-foreground">Sitio web</p>

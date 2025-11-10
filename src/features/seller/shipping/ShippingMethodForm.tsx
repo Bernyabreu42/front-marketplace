@@ -85,7 +85,7 @@ export function ShippingMethodForm({
 
     onSubmit({
       name: formState.name.trim(),
-      price: Number(priceInfo.value.toFixed(2)),
+      cost: Number(priceInfo.value.toFixed(2)),
       description: formState.description.trim()
         ? formState.description.trim()
         : undefined,

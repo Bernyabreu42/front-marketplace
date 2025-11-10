@@ -21,6 +21,7 @@ import type {
   TaxItem,
   UpdateProductPayload,
 } from "./types";
+import type { PricePreviewStep, ProductFormState } from "./product-form.types";
 import { useEditProduct } from "@/hooks/use-edit-product";
 import RelatedProductsSection from "@/components/related-products-section";
 import { CategoryMultiSelect } from "./components/CategoryMultiSelect";
@@ -43,28 +44,6 @@ const currencyFormatter = new Intl.NumberFormat("es-DO", {
 
 const formatCurrency = (value: number) => currencyFormatter.format(value);
 
-export type ProductFormState = {
-  name: string;
-  sku: string;
-  price: string;
-  stock: string;
-  status: string;
-  categories: string[];
-  taxes: string[];
-  promotionIds: string[];
-  discountId: string | null;
-  metaTitle: string;
-  metaDescription: string;
-};
-
-export type PricePreviewStep = {
-  id: string;
-  label: string;
-  change: number;
-  total: number;
-  kind: "base" | "promotion" | "discount" | "tax" | "total";
-  detail?: string;
-};
 
 const formatPercentageValue = (value: number) => {
   if (!Number.isFinite(value)) return "-";
@@ -99,6 +78,27 @@ const getTaxDetail = (tax: TaxItem) => {
     return `Incrementa ${formatPercentageValue(tax.rate)} sobre el subtotal`;
   }
   return `Incremento fijo de ${formatCurrency(tax.rate)}`;
+};
+
+
+const mapProductTaxesToIds = (
+  taxes: Array<TaxItem | { tax?: TaxItem }> | undefined
+): string[] => {
+  if (!Array.isArray(taxes)) return [];
+
+  return taxes
+    .map((entry) => {
+      const normalized = (entry as { tax?: TaxItem }).tax ?? entry;
+      if (!normalized || typeof normalized !== "object") return null;
+
+      const status = (normalized as Partial<TaxItem>).status;
+      if (status && status !== "active") {
+        return null;
+      }
+
+      return "id" in normalized ? (normalized.id as string) : null;
+    })
+    .filter((id): id is string => Boolean(id));
 };
 
 export function SellerProductEditPage() {
@@ -146,10 +146,7 @@ export function SellerProductEditPage() {
       stock: String(product.stock ?? ""),
       status: product.status ?? "active",
       categories: product.categories.map((category) => category.id),
-      taxes:
-        product.taxes
-          ?.filter((tax) => tax.status === "active")
-          .map((tax) => tax.id) ?? [],
+      taxes: mapProductTaxesToIds(product.taxes),
       promotionIds:
         product.promotions
           ?.filter((promotion) => promotion.status === "active")
@@ -775,3 +772,4 @@ export function SellerProductEditPage() {
     </form>
   );
 }
+

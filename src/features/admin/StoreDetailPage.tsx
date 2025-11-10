@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   fetchStoreDiscounts,
+  fetchStoreProducts,
   fetchStorePromotions,
 } from "@/features/seller/api";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -15,12 +16,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getApiErrorMessage } from "@/lib/utils";
 import {
   deleteAdminStore,
-  fetchAdminProducts,
   fetchAdminStore,
   updateStoreStatus,
 } from "./api";
-import type { AdminProductsResponse, AdminStoreDetail } from "./types";
-import type { DiscountItem, PromotionItem } from "@/features/seller/types";
+import type { AdminStoreDetail } from "./types";
+import type {
+  DiscountItem,
+  ProductListItem,
+  ProductsResponse,
+  PromotionItem,
+} from "@/features/seller/types";
+import { formatStoreAddress } from "@/features/seller/utils/address";
 
 const statusLabel: Record<string, string> = {
   pending: "Pendiente",
@@ -84,9 +90,10 @@ export function AdminStoreDetailPage() {
     enabled: Boolean(storeId),
   });
 
-  const productsQuery = useQuery<AdminProductsResponse>({
-    queryKey: ['admin', 'stores', storeId, 'products', productPage],
-    queryFn: () => fetchAdminProducts({ storeId, page: productPage, limit: 15 }),
+  const productsQuery = useQuery<ProductsResponse>({
+    queryKey: ["admin", "stores", storeId, "products", productPage],
+    queryFn: () =>
+      fetchStoreProducts(storeId!, { page: productPage, limit: 15 }),
     enabled: Boolean(storeId),
   });
 
@@ -128,7 +135,7 @@ export function AdminStoreDetailPage() {
   });
 
   const store = storeQuery.data?.data as AdminStoreDetail | undefined;
-  const products = productsQuery.data?.data ?? [];
+  const products: ProductListItem[] = productsQuery.data?.data ?? [];
   const productPagination = productsQuery.data?.pagination;
   const promotions = (promotionsQuery.data?.data as PromotionItem[] | undefined) ?? [];
   const discounts = (discountsQuery.data?.data as DiscountItem[] | undefined) ?? [];
@@ -277,7 +284,7 @@ export function AdminStoreDetailPage() {
                     Direccion
                   </p>
                   <p className="text-sm text-foreground">
-                    {store.address ?? "-"}
+                    {formatStoreAddress(store.address ?? null) || "-"}
                   </p>
                 </div>
                 <div className="md:col-span-2">

@@ -93,7 +93,7 @@ export function SellerOrdersPage() {
     setPage(1);
   };
 
-  console.log({ storeId, filters, orders });
+  // console.log({ storeId, filters, orders });
 
   if (!storeId) {
     return (

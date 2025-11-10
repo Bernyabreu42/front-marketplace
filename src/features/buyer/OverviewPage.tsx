@@ -173,7 +173,7 @@ export function BuyerOverviewPage() {
             )}
           </CardContent>
         </Card>
-        <Card>
+        <Card className="h-max">
           <CardHeader>
             <CardTitle className="text-base font-semibold">
               Actividad de puntos

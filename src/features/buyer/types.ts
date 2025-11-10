@@ -1,4 +1,4 @@
-import type { PaginatedResponse } from "@/features/users/types";
+import type { ApiResponse, PaginatedResponse } from "@/features/users/types";
 
 export interface OrderProduct {
   id: string;
@@ -113,3 +113,73 @@ export interface OrdersQuery {
   [key: string]: string | number | boolean | undefined;
 }
 
+export interface FavoriteProductStore {
+  id: string;
+  name: string | null;
+  status: string;
+  isDeleted?: boolean;
+}
+
+export interface FavoriteProduct {
+  id: string;
+  name: string;
+  price: number;
+  priceFinal: number;
+  images: string[];
+  status: string;
+  favoritesCount: number;
+  isFavorite?: boolean;
+  store: FavoriteProductStore | null;
+}
+
+export interface FavoriteItem {
+  id: string;
+  userId: string;
+  productId: string;
+  createdAt: string;
+  product: FavoriteProduct | null;
+}
+
+export type FavoritesResponse = PaginatedResponse<FavoriteItem>;
+
+export interface FavoritesQuery {
+  page?: number;
+  limit?: number;
+}
+
+export interface FavoriteMessageResponse {
+  success: boolean;
+  message: string;
+}
+
+
+export interface ShippingAddress {
+  country?: string | null;
+  state?: string | null;
+  city?: string | null;
+  postalCode?: string | null;
+  street?: string | null;
+  note?: string | null;
+}
+
+export interface UserAddress {
+  id: string;
+  userId: string;
+  label: string | null;
+  isDefault: boolean;
+  address: ShippingAddress;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UserAddressPayload extends ShippingAddress {
+  label?: string | null;
+  isDefault?: boolean;
+}
+
+export type UserAddressesResponse = ApiResponse<UserAddress[]>;
+export type UserAddressResponse = ApiResponse<UserAddress>;
+export interface AddressMessageResponse {
+  success: boolean;
+  message: string;
+}

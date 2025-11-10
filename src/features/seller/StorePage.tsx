@@ -14,13 +14,21 @@ import { fetchUserById } from "@/features/users/api";
 
 import { updateStoreDetails } from "./api";
 import type {
+  StoreAddress,
   StoreBusinessDay,
   StoreBusinessHourEntry,
   StoreBusinessHoursRecord,
   StoreBusinessHoursValue,
+  StoreDetail,
 } from "./types";
 import { useSellerStore } from "./hooks";
 import StoreHeader from "./store-header";
+import {
+  areAddressesEqual,
+  createEmptyAddress,
+  normalizeStoreAddress,
+  sanitizeStoreAddress,
+} from "./utils/address";
 
 type StoreFormState = {
   name: string;
@@ -28,7 +36,7 @@ type StoreFormState = {
   description: string;
   email: string;
   phone: string;
-  address: string;
+  address: StoreAddress;
   website: string;
   logo: string;
   banner: string;
@@ -38,12 +46,11 @@ type StoreFormState = {
   youtube: string;
 };
 
-const sanitize = (value: string | null | undefined) => {
+const sanitizeString = (value: string | null | undefined) => {
   if (value === null || value === undefined) return null;
   const trimmed = value.trim();
   return trimmed === "" ? null : trimmed;
 };
-
 
 const DAY_ORDER: StoreBusinessDay[] = [
   "monday",
@@ -67,7 +74,10 @@ const DAY_LABELS: Record<DayKey, string> = {
   sunday: "Sunday",
 };
 
-const DAY_DEFAULTS: Record<DayKey, { isOpen: boolean; openTime: string; closeTime: string }> = {
+const DAY_DEFAULTS: Record<
+  DayKey,
+  { isOpen: boolean; openTime: string; closeTime: string }
+> = {
   monday: { isOpen: true, openTime: "09:00", closeTime: "18:00" },
   tuesday: { isOpen: false, openTime: "09:00", closeTime: "18:00" },
   wednesday: { isOpen: false, openTime: "09:00", closeTime: "18:00" },
@@ -76,7 +86,6 @@ const DAY_DEFAULTS: Record<DayKey, { isOpen: boolean; openTime: string; closeTim
   saturday: { isOpen: false, openTime: "09:00", closeTime: "18:00" },
   sunday: { isOpen: false, openTime: "09:00", closeTime: "18:00" },
 };
-
 
 type DayHour = {
   day: DayKey;
@@ -91,9 +100,7 @@ const createDefaultBusinessHours = (): DayHour[] =>
     ...DAY_DEFAULTS[day],
   }));
 
-const normalizeBusinessHours = (
-  raw: StoreBusinessHoursValue
-): DayHour[] => {
+const normalizeBusinessHours = (raw: StoreBusinessHoursValue): DayHour[] => {
   const defaults = createDefaultBusinessHours();
   if (!raw) return defaults;
 
@@ -106,8 +113,10 @@ const normalizeBusinessHours = (
       const normalizedDay = dayValue.toLowerCase() as DayKey;
       if (!DAY_LABELS[normalizedDay]) return;
       byDay.set(normalizedDay, {
-        open: typeof (entry as any)?.open === "string" ? (entry as any).open : "",
-        close: typeof (entry as any)?.close === "string" ? (entry as any).close : "",
+        open:
+          typeof (entry as any)?.open === "string" ? (entry as any).open : "",
+        close:
+          typeof (entry as any)?.close === "string" ? (entry as any).close : "",
         closed: (entry as any)?.closed ?? null,
       });
     });
@@ -129,7 +138,8 @@ const normalizeBusinessHours = (
     if (!slot) return item;
 
     const openTime = slot.open && slot.open.length ? slot.open : item.openTime;
-    const closeTime = slot.close && slot.close.length ? slot.close : item.closeTime;
+    const closeTime =
+      slot.close && slot.close.length ? slot.close : item.closeTime;
     const isOpen = slot.closed === true ? false : true;
 
     return {
@@ -141,9 +151,7 @@ const normalizeBusinessHours = (
   });
 };
 
-const serializeBusinessHours = (
-  hours: DayHour[]
-): StoreBusinessHoursRecord =>
+const serializeBusinessHours = (hours: DayHour[]): StoreBusinessHoursRecord =>
   hours.reduce<StoreBusinessHoursRecord>((acc, item) => {
     acc[item.day] = {
       open: item.openTime,
@@ -165,13 +173,14 @@ export function SellerStorePage() {
     type: "success" | "error";
     message: string;
   } | null>(null);
+
   const [form, setForm] = useState<StoreFormState>({
     name: "",
     tagline: "",
     description: "",
     email: "",
     phone: "",
-    address: "",
+    address: createEmptyAddress(),
     website: "",
     logo: "",
     banner: "",
@@ -180,7 +189,10 @@ export function SellerStorePage() {
     twitter: "",
     youtube: "",
   });
-  const [businessHours, setBusinessHours] = useState<DayHour[]>(() => createDefaultBusinessHours());
+
+  const [businessHours, setBusinessHours] = useState<DayHour[]>(() =>
+    createDefaultBusinessHours()
+  );
 
   const userProfileQuery = useQuery({
     queryKey: ["user", userId],
@@ -197,6 +209,11 @@ export function SellerStorePage() {
     [store?.businessHours]
   );
 
+  const originalAddress = useMemo(
+    () => normalizeStoreAddress(store?.address ?? null),
+    [store?.address]
+  );
+
   useEffect(() => {
     if (!store) return;
     setForm({
@@ -205,7 +222,7 @@ export function SellerStorePage() {
       description: store.description ?? "",
       email: store.email ?? "",
       phone: store.phone ?? "",
-      address: store.address ?? "",
+      address: normalizeStoreAddress(store.address ?? null),
       website: store.website ?? "",
       logo: store.logo ?? "",
       banner: store.banner ?? "",
@@ -223,11 +240,17 @@ export function SellerStorePage() {
   const hasChanges = useMemo(() => {
     if (!store) return false;
     return (Object.keys(form) as Array<keyof StoreFormState>).some((key) => {
-      const formValue = sanitize(form[key]);
-      const original = sanitize(store[key] as string | null | undefined);
+      if (key === "address") {
+        return !areAddressesEqual(form.address, originalAddress);
+      }
+
+      const formValue = sanitizeString(form[key] as string | null | undefined);
+      const original = sanitizeString(
+        store?.[key as keyof StoreDetail] as string | null | undefined
+      );
       return formValue !== original;
     });
-  }, [form, store]);
+  }, [form, originalAddress, store]);
 
   const businessHoursChanged = useMemo(
     () => !businessHoursEquals(businessHours, originalBusinessHours),
@@ -235,7 +258,7 @@ export function SellerStorePage() {
   );
 
   const mutation = useMutation({
-    mutationFn: async (payload: Partial<StoreFormState>) => {
+    mutationFn: async (payload: Partial<StoreDetail>) => {
       if (!storeId) throw new Error("No se encontro la tienda asociada");
       return updateStoreDetails(storeId, payload);
     },
@@ -296,12 +319,21 @@ export function SellerStorePage() {
       return;
     }
 
-    const payload: Record<string, string | null> = {};
+    const payload: Partial<StoreDetail> = {};
     (Object.keys(form) as Array<keyof StoreFormState>).forEach((key) => {
-      const formValue = sanitize(form[key]);
-      const original = sanitize(store[key] as string | null | undefined);
+      if (key === "address") {
+        if (!areAddressesEqual(form.address, originalAddress)) {
+          payload.address = sanitizeStoreAddress(form.address);
+        }
+        return;
+      }
+
+      const formValue = sanitizeString(form[key] as string | null | undefined);
+      const original = sanitizeString(
+        store?.[key as keyof StoreDetail] as string | null | undefined
+      );
       if (formValue !== original) {
-        payload[key] = formValue;
+        payload[key as keyof StoreDetail] = formValue;
       }
     });
 
@@ -367,6 +399,7 @@ export function SellerStorePage() {
         <TabsList>
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="social">Social Media</TabsTrigger>
+          <TabsTrigger value="address">Address</TabsTrigger>
           <TabsTrigger value="hours">Business Hours</TabsTrigger>
         </TabsList>
 
@@ -413,7 +446,10 @@ export function SellerStorePage() {
                       id="store-tagline"
                       value={form.tagline}
                       onChange={(e) =>
-                        setForm((prev) => ({ ...prev, tagline: e.target.value }))
+                        setForm((prev) => ({
+                          ...prev,
+                          tagline: e.target.value,
+                        }))
                       }
                       placeholder="We bring the best products"
                     />
@@ -465,11 +501,11 @@ export function SellerStorePage() {
                     <Label htmlFor="store-address">Address</Label>
                     <Input
                       id="store-address"
-                      value={form.address}
+                      value={form.address.street}
                       onChange={(e) =>
                         setForm((prev) => ({
                           ...prev,
-                          address: e.target.value,
+                          address: { ...prev.address, street: e.target.value },
                         }))
                       }
                       placeholder="123 Bakery Street"
@@ -644,8 +680,129 @@ export function SellerStorePage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="address">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base font-semibold">
+                Store Address
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Update the detailed address information for your store.
+              </p>
+            </CardHeader>
+            <CardContent>
+              <form className="space-y-4" onSubmit={handleSubmit}>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="country">Country</Label>
+                    <Input
+                      id="country"
+                      value={form.address.country}
+                      onChange={(e) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          address: { ...prev.address, country: e.target.value },
+                        }))
+                      }
+                      placeholder="Dominican Republic"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="city">City</Label>
+                    <Input
+                      id="city"
+                      value={form.address.city}
+                      onChange={(e) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          address: { ...prev.address, city: e.target.value },
+                        }))
+                      }
+                      placeholder="Santo Domingo"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="state">State/Province</Label>
+                    <Input
+                      id="state"
+                      value={form.address.state}
+                      onChange={(e) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          address: { ...prev.address, state: e.target.value },
+                        }))
+                      }
+                      placeholder="Distrito Nacional"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="postalCode">Postal Code</Label>
+                    <Input
+                      id="postalCode"
+                      value={form.address.postalCode}
+                      onChange={(e) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          address: {
+                            ...prev.address,
+                            postalCode: e.target.value,
+                          },
+                        }))
+                      }
+                      placeholder="10101"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="street">Street</Label>
+                    <Input
+                      id="street"
+                      value={form.address.street}
+                      onChange={(e) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          address: { ...prev.address, street: e.target.value },
+                        }))
+                      }
+                      placeholder="Avenida 21 de Abril"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="note">Note</Label>
+                    <Input
+                      id="note"
+                      value={form.address.note}
+                      onChange={(e) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          address: { ...prev.address, note: e.target.value },
+                        }))
+                      }
+                      placeholder="Cerca del Centro Colonial"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end">
+                  <Button
+                    type="submit"
+                    disabled={!hasChanges || mutation.isPending}
+                  >
+                    <Save className="mr-2 h-4 w-4" />
+                    {mutation.isPending ? "Saving..." : "Save Address"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
     </div>
   );
 }
-

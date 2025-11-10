@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { PricePreviewStep, ProductFormState } from "./ProductEditPage";
+import type { PricePreviewStep, ProductFormState } from "./product-form.types";
 
 interface PriceInventoryProps {
   form: ProductFormState;
@@ -111,3 +111,4 @@ export default function PriceInventory({
     </Card>
   );
 }
+

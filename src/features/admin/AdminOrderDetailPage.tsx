@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getApiErrorMessage } from "@/lib/utils";
 import { fetchAdminOrder, updateAdminOrderStatus } from "@/features/admin/api";
 import type { AdminOrder, AdminOrderResponse, AdminOrderStatus } from "@/features/admin/types";
+import { mapShippingAddressEntries } from "@/features/orders/shipping";
 
 const statusLabel: Record<AdminOrderStatus, string> = {
   pending: "Pendiente",
@@ -74,6 +75,7 @@ export function AdminOrderDetailPage() {
   }, [orderQuery.error, navigate]);
 
   const order: AdminOrder | undefined = orderQuery.data?.data;
+  const shippingEntries = mapShippingAddressEntries(order?.shippingAddress);
 
   const mutation = useMutation({
     mutationFn: (status: AdminOrderStatus) => updateAdminOrderStatus(orderId!, status),
@@ -204,9 +206,18 @@ export function AdminOrderDetailPage() {
               </div>
               <div>
                 <p className="text-xs uppercase text-muted-foreground">Dirección</p>
-                <pre className="whitespace-pre-wrap rounded-md border border-border bg-muted/50 px-3 py-2 text-xs text-foreground">
-                  {order.shippingAddress ? JSON.stringify(order.shippingAddress, null, 2) : "Sin dirección registrada"}
-                </pre>
+                {shippingEntries.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Sin dirección registrada.</p>
+                ) : (
+                  <dl className="mt-2 grid gap-3 rounded-lg border border-border/60 bg-muted/30 p-3 md:grid-cols-2">
+                    {shippingEntries.map(({ key, label, value }) => (
+                      <div key={key} className={key === "deliveryNotes" ? "md:col-span-2" : undefined}>
+                        <dt className="text-[11px] uppercase text-muted-foreground">{label}</dt>
+                        <dd className="text-sm text-foreground">{value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
               </div>
               {order.trackingNumber && (
                 <div>

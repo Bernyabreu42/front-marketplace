@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/auth/AuthContext";
 import { fetchStoreOrder, updateStoreOrderStatus } from "@/features/seller/api";
 import type {
@@ -17,11 +16,11 @@ import type {
   SellerOrderResponse,
 } from "@/features/seller/types";
 import { getApiErrorMessage } from "@/lib/utils";
+import { mapShippingAddressEntries } from "@/features/orders/shipping";
 
 const statusLabel: Record<OrderStatus, string> = {
   pending: "Pendiente",
   processing: "Procesando",
-  paid: "Pagada",
   shipped: "Enviada",
   completed: "Completada",
   cancelled: "Cancelada",
@@ -30,7 +29,6 @@ const statusLabel: Record<OrderStatus, string> = {
 const statusOptions: OrderStatus[] = [
   "pending",
   "processing",
-  "paid",
   "shipped",
   "completed",
   "cancelled",
@@ -39,7 +37,6 @@ const statusOptions: OrderStatus[] = [
 const statusBadgeClass: Record<OrderStatus, string> = {
   pending: "bg-amber-100 text-amber-700",
   processing: "bg-blue-100 text-blue-700",
-  paid: "bg-emerald-100 text-emerald-700",
   shipped: "bg-indigo-100 text-indigo-700",
   completed: "bg-emerald-200 text-emerald-800",
   cancelled: "bg-rose-100 text-rose-700",
@@ -80,6 +77,7 @@ export function SellerOrderDetailPage() {
   }, [orderQuery.error, navigate]);
 
   const order: SellerOrder | undefined = orderQuery.data?.data;
+  const shippingEntries = mapShippingAddressEntries(order?.shippingAddress);
 
   useEffect(() => {
     if (order && user?.store?.id && order.storeId !== user.store.id) {
@@ -254,15 +252,25 @@ export function SellerOrderDetailPage() {
                 <p className="text-xs uppercase text-muted-foreground">
                   Dirección
                 </p>
-                <Textarea
-                  value={
-                    order.shippingAddress
-                      ? JSON.stringify(order.shippingAddress, null, 2)
-                      : "Sin dirección registrada"
-                  }
-                  readOnly
-                  className="h-40"
-                />
+                {shippingEntries.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Sin dirección registrada.
+                  </p>
+                ) : (
+                  <dl className="mt-2 grid gap-3 rounded-lg border border-border/60 bg-muted/20 p-3 md:grid-cols-2">
+                    {shippingEntries.map(({ key, label, value }) => (
+                      <div
+                        key={key}
+                        className={key === "deliveryNotes" ? "md:col-span-2" : undefined}
+                      >
+                        <dt className="text-[11px] uppercase text-muted-foreground">
+                          {label}
+                        </dt>
+                        <dd className="text-sm text-foreground">{value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
               </div>
             </>
           )}

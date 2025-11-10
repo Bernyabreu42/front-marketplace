@@ -26,6 +26,7 @@ import {
   fetchRelatedProducts,
 } from "@/features/seller/api";
 import type { ProductListItem, StoreDetail } from "@/features/seller/types";
+import { formatStoreAddress } from "@/features/seller/utils/address";
 
 const currencyFormatter = new Intl.NumberFormat("es-DO", {
   style: "currency",
@@ -132,7 +133,10 @@ export function ProductPreviewPage() {
   const categoriesLabel = product.categories
     .map((category) => category.name)
     .join(" • ");
-  const locationLabel = [store?.address, categoriesLabel]
+  const locationLabel = [
+    formatStoreAddress(store?.address ?? null),
+    categoriesLabel,
+  ]
     .filter(Boolean)
     .join(" • ");
   const productPrice = formatCurrency(product.priceFinal ?? product.price ?? 0);

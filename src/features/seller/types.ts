@@ -35,6 +35,17 @@ export type StoreBusinessHoursValue =
   | StoreBusinessHourEntry[]
   | null;
 
+export interface StoreAddress {
+  country?: string | null;
+  city?: string | null;
+  state?: string | null;
+  postalCode?: string | null;
+  street?: string | null;
+  note?: string | null;
+}
+
+export type StoreAddressValue = StoreAddress | string | null;
+
 export interface StoreOwnerSummary {
   id: string;
   email: string;
@@ -52,7 +63,7 @@ export interface StoreDetail {
   description: string;
   email: string | null;
   phone: string | null;
-  address: string | null;
+  address: StoreAddressValue;
   website: string | null;
   logo: string | null;
   banner: string | null;
@@ -81,7 +92,7 @@ export interface CreateStorePayload {
   tagline?: string | null;
   email?: string | null;
   phone?: string | null;
-  address?: string | null;
+  address?: StoreAddressValue;
 }
 
 export interface CategorySummary {
@@ -258,7 +269,7 @@ export type ShippingMethodsResponse = PaginatedResponse<ShippingMethod>;
 
 export interface CreateShippingMethodPayload {
   name: string;
-  price: number;
+  cost: number;
   description?: string | null;
 }
 
@@ -284,7 +295,6 @@ export interface OrdersQuery {
 export type OrderStatus =
   | "pending"
   | "processing"
-  | "paid"
   | "shipped"
   | "completed"
   | "cancelled";

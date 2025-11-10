@@ -20,7 +20,7 @@ export function SellerShippingEditPage() {
 
   const shippingQuery = useQuery({
     queryKey: ["seller", "shipping-method"],
-    queryFn: () => fetchShippingMethod(),
+    queryFn: () => fetchShippingMethod(shippingId!),
     enabled: Boolean(shippingId),
   });
 
@@ -53,7 +53,7 @@ export function SellerShippingEditPage() {
     }
     const updatePayload: UpdateShippingMethodPayload = {
       name: payload.name,
-      price: payload.price,
+      cost: payload.cost,
       description: payload.description,
     };
     mutation.mutate(updatePayload);

@@ -202,8 +202,8 @@ export const fetchProduct = (productId: string) =>
 export const fetchStoreShippingMethods = (storeId: string) =>
   apiFetch<ApiResponse<ShippingMethod[]>>(`/api/shipping/store/${storeId}`);
 
-export const fetchShippingMethod = () =>
-  apiFetch<ApiResponse<ShippingMethod>>("/api/orders/store");
+export const fetchShippingMethod = (shippingId: string) =>
+  apiFetch<ApiResponse<ShippingMethod>>(`/api/shipping/${shippingId}`);
 
 export const createShippingMethod = (payload: CreateShippingMethodPayload) =>
   apiFetch<ApiResponse<ShippingMethod>>("/api/shipping", {

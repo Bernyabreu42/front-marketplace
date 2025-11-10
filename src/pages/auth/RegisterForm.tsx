@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 import { useAuth } from "@/auth/AuthContext";
@@ -10,6 +10,7 @@ import { getApiErrorMessage } from "@/lib/utils";
 
 export function RegisterForm() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -48,6 +49,7 @@ export function RegisterForm() {
       });
 
       toast.success(response.message ?? "Cuenta creada. Revisa tu correo para verificarla.");
+      navigate("/auth/login", { replace: true });
     } catch (error) {
       toast.error(getApiErrorMessage(error));
     } finally {

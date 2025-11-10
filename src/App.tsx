@@ -31,6 +31,8 @@ import { BuyerOrderDetailPage } from "@/features/buyer/OrderDetailPage";
 import { BuyerOrdersPage } from "@/features/buyer/OrdersPage";
 import { BuyerOverviewPage } from "@/features/buyer/OverviewPage";
 import { BuyerProfilePage } from "@/features/buyer/ProfilePage";
+import { BuyerFavoritesPage } from "@/features/buyer/FavoritesPage";
+import { BuyerAddressesPage } from "@/features/buyer/AddressesPage";
 import { SellerDiscountCreatePage } from "@/features/seller/DiscountsPage/DiscountCreatePage";
 import { SellerDiscountEditPage } from "@/features/seller/DiscountsPage/DiscountEditPage";
 import { SellerOverviewPage } from "@/features/seller/OverviewPage";
@@ -106,6 +108,8 @@ export const router = createBrowserRouter([
               { index: true, element: <BuyerOverviewPage /> },
               { path: "orders", element: <BuyerOrdersPage /> },
               { path: "orders/:orderId", element: <BuyerOrderDetailPage /> },
+              { path: "favorites", element: <BuyerFavoritesPage /> },
+              { path: "addresses", element: <BuyerAddressesPage /> },
               { path: "profile", element: <BuyerProfilePage /> },
             ],
           },
@@ -219,3 +223,4 @@ export const router = createBrowserRouter([
     element: <Navigate to="/auth/login" replace />,
   },
 ]);
+

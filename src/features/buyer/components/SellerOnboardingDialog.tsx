@@ -16,7 +16,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createStore } from "@/features/seller/api";
-import type { CreateStorePayload } from "@/features/seller/types";
+import type { CreateStorePayload, StoreAddress } from "@/features/seller/types";
+import {
+  createEmptyAddress,
+  sanitizeStoreAddress,
+} from "@/features/seller/utils/address";
 import { getApiErrorMessage } from "@/lib/utils";
 
 type SellerOnboardingDialogProps = {
@@ -30,17 +34,17 @@ type FormState = {
   description: string;
   email: string;
   phone: string;
-  address: string;
+  address: StoreAddress;
 };
 
-const initialFormState: FormState = {
+const createInitialFormState = (): FormState => ({
   name: "",
   tagline: "",
   description: "",
   email: "",
   phone: "",
-  address: "",
-};
+  address: createEmptyAddress(),
+});
 
 const sanitizeOptional = (value: string): string | null => {
   const trimmed = value.trim();
@@ -52,7 +56,7 @@ export function SellerOnboardingDialog({
   onClose,
 }: SellerOnboardingDialogProps) {
   const queryClient = useQueryClient();
-  const [form, setForm] = useState<FormState>(initialFormState);
+  const [form, setForm] = useState<FormState>(createInitialFormState);
   const [touched, setTouched] = useState(false);
 
   const mutation = useMutation({
@@ -61,7 +65,7 @@ export function SellerOnboardingDialog({
       toast.success(
         response.message ?? "Solicitud enviada. Estamos revisando tu tienda."
       );
-      setForm(initialFormState);
+      setForm(createInitialFormState());
       setTouched(false);
       const storeId = response.data?.id;
       queryClient
@@ -89,13 +93,15 @@ export function SellerOnboardingDialog({
     setTouched(true);
     if (!isValid || mutation.isPending) return;
 
+    const addressPayload = sanitizeStoreAddress(form.address);
+
     const payload: CreateStorePayload = {
       name: form.name.trim(),
       description: form.description.trim(),
       tagline: sanitizeOptional(form.tagline),
       email: sanitizeOptional(form.email)?.toLowerCase() ?? null,
       phone: sanitizeOptional(form.phone),
-      address: sanitizeOptional(form.address),
+      address: addressPayload,
     };
 
     mutation.mutate(payload);
@@ -104,7 +110,7 @@ export function SellerOnboardingDialog({
   const descriptionChars = form.description.length;
 
   return (
-    <DialogContent className="overflow-auto">
+    <DialogContent className="overflow-auto max-h-[90%]">
       <DialogHeader>
         <DialogTitle>Convertirme en vendedor</DialogTitle>
         <DialogDescription>
@@ -199,17 +205,117 @@ export function SellerOnboardingDialog({
           </div>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="store-address">Direccion (opcional)</Label>
-          <Input
-            id="store-address"
-            value={form.address}
-            onChange={(event) =>
-              setForm((prev) => ({ ...prev, address: event.target.value }))
-            }
-            placeholder="Ciudad, Calle y numero"
-            disabled={mutation.isPending}
-          />
+        <div className="space-y-4">
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-muted-foreground">
+              Direccion de la tienda (opcional)
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Completa los campos que apliquen para ayudar a tus clientes a
+              ubicarse.
+            </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="store-country">Pais</Label>
+              <Input
+                id="store-country"
+                value={form.address.country}
+                onChange={(event) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    address: { ...prev.address, country: event.target.value },
+                  }))
+                }
+                placeholder="Republica Dominicana"
+                disabled={mutation.isPending}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="store-city">Ciudad</Label>
+              <Input
+                id="store-city"
+                value={form.address.city}
+                onChange={(event) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    address: { ...prev.address, city: event.target.value },
+                  }))
+                }
+                placeholder="Santo Domingo"
+                disabled={mutation.isPending}
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="store-state">Estado/Provincia</Label>
+              <Input
+                id="store-state"
+                value={form.address.state}
+                onChange={(event) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    address: { ...prev.address, state: event.target.value },
+                  }))
+                }
+                placeholder="Distrito Nacional"
+                disabled={mutation.isPending}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="store-postal">Codigo postal</Label>
+              <Input
+                id="store-postal"
+                value={form.address.postalCode}
+                onChange={(event) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    address: {
+                      ...prev.address,
+                      postalCode: event.target.value,
+                    },
+                  }))
+                }
+                placeholder="10101"
+                disabled={mutation.isPending}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="store-street">Calle y numero</Label>
+            <Input
+              id="store-street"
+              value={form.address.street}
+              onChange={(event) =>
+                setForm((prev) => ({
+                  ...prev,
+                  address: { ...prev.address, street: event.target.value },
+                }))
+              }
+              placeholder="Calle Principal #123"
+              disabled={mutation.isPending}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="store-note">Referencia (opcional)</Label>
+            <Input
+              id="store-note"
+              value={form.address.note}
+              onChange={(event) =>
+                setForm((prev) => ({
+                  ...prev,
+                  address: { ...prev.address, note: event.target.value },
+                }))
+              }
+              placeholder="Frente al parque central"
+              disabled={mutation.isPending}
+            />
+          </div>
         </div>
 
         <DialogFooter className="pt-2">

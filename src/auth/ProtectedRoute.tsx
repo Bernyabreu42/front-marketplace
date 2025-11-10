@@ -5,18 +5,54 @@ import { useAuth } from "./AuthContext";
 
 export function ProtectedRoute({ allowRoles }: { allowRoles?: string[] }) {
   const { user, loading, refresh } = useAuth();
-  const hasAttemptedRef = useRef(false);
   const [refreshing, setRefreshing] = useState(false);
 
+  const sessionRefreshAttemptRef = useRef(false);
+  const roleRefreshAttemptRef = useRef(false);
+
   useEffect(() => {
-    if (!loading && !user && !hasAttemptedRef.current) {
-      hasAttemptedRef.current = true;
-      setRefreshing(true);
-      refresh().finally(() => {
-        setRefreshing(false);
-      });
+    if (!loading && !refreshing && !user) {
+      if (!sessionRefreshAttemptRef.current) {
+        sessionRefreshAttemptRef.current = true;
+        setRefreshing(true);
+        refresh()
+          .catch(() => undefined)
+          .finally(() => {
+            setRefreshing(false);
+          });
+      }
+      return;
     }
-  }, [loading, refresh, user]);
+
+    if (user) {
+      sessionRefreshAttemptRef.current = false;
+    }
+  }, [loading, refreshing, refresh, user]);
+
+  useEffect(() => {
+    if (
+      !loading &&
+      !refreshing &&
+      user &&
+      allowRoles &&
+      !allowRoles.includes(user.role)
+    ) {
+      if (!roleRefreshAttemptRef.current) {
+        roleRefreshAttemptRef.current = true;
+        setRefreshing(true);
+        refresh()
+          .catch(() => undefined)
+          .finally(() => {
+            setRefreshing(false);
+          });
+      }
+      return;
+    }
+
+    if (user && allowRoles && allowRoles.includes(user.role)) {
+      roleRefreshAttemptRef.current = false;
+    }
+  }, [allowRoles, loading, refreshing, refresh, user]);
 
   if (loading || refreshing) {
     return (

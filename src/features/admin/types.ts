@@ -1,6 +1,7 @@
 import type {
   CategoriesResponse,
   CategorySummary,
+  StoreAddressValue,
   StoreBusinessHoursValue,
   TaxesResponse,
   TaxItem,
@@ -62,7 +63,7 @@ export interface AdminStoreSummary {
   createdAt: string;
   updatedAt: string;
   owner: AdminStoreOwner;
-  address: string | null;
+  address: StoreAddressValue;
   email: string | null;
   phone: string | null;
   _count?: {

@@ -24,6 +24,8 @@ import {
   Receipt,
   Settings,
   Sparkles,
+  Heart,
+  MapPin,
   Star,
   Store,
   Truck, // Added Truck icon
@@ -90,6 +92,8 @@ const sellerNavItems: NavItem[] = [
 const buyerNavItems: NavItem[] = [
   { to: "/dashboard/buyer", label: "Inicio", icon: LayoutDashboard, end: true },
   { to: "/dashboard/buyer/orders", label: "Mis ordenes", icon: Package },
+  { to: "/dashboard/buyer/favorites", label: "Favoritos", icon: Heart },
+  { to: "/dashboard/buyer/addresses", label: "Direcciones", icon: MapPin },
   { to: "/dashboard/buyer/profile", label: "Perfil", icon: Sparkles },
 ];
 
@@ -224,7 +228,7 @@ export function DashboardLayout() {
               </div>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link to={profilePath}>Ver perfil</Link>
+                <Link to={user?.role === "buyer" ? "/dashboard/buyer/profile" : profilePath} >Ver perfil</Link>
               </DropdownMenuItem>
               {user?.role === "seller" && (
                 <DropdownMenuItem asChild>
@@ -253,3 +257,4 @@ export function DashboardLayout() {
     </div>
   );
 }
+

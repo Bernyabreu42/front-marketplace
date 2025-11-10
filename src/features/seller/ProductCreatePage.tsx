@@ -2,7 +2,6 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ImageIcon, UploadCloud, X } from "lucide-react";
 import type Quill from "quill";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -19,14 +18,17 @@ import { useImageUrlResolver } from "@/hooks/use-image-url";
 import { fetchUserById } from "@/features/users/api";
 import { getApiErrorMessage } from "@/lib/utils";
 import { CategoryMultiSelect } from "./components/CategoryMultiSelect";
-import {
-  useCategories,
-  useStoreDiscounts,
-  useStorePromotions,
-  useStoreTaxes,
-} from "./hooks";
-import { createProduct, uploadImage, createRelatedProducts } from "./api";
-import type { CreateProductPayload, ProductListItem } from "./types";
+import PriceInventory from "./price-inventory";
+import UploadImages from "./upload-images";
+import { useCategories, useStoreDiscounts, useStoreTaxes } from "./hooks";
+import { createProduct, createRelatedProducts, uploadImage } from "./api";
+import type {
+  CreateProductPayload,
+  DiscountItem,
+  ProductListItem,
+  TaxItem,
+} from "./types";
+import type { PricePreviewStep, ProductFormState } from "./product-form.types";
 
 const MAX_PRODUCT_IMAGES = 5;
 const PRODUCT_STATUS_OPTIONS = [
@@ -43,18 +45,23 @@ const currencyFormatter = new Intl.NumberFormat("es-DO", {
 
 const formatCurrency = (value: number) => currencyFormatter.format(value);
 
-type ProductFormState = {
-  name: string;
-  sku: string;
-  price: string;
-  stock: string;
-  status: string;
-  categories: string[];
-  taxes: string[];
-  promotionIds: string[];
-  discountId: string | null;
-  metaTitle: string;
-  metaDescription: string;
+const formatPercentageValue = (value: number) => {
+  if (!Number.isFinite(value)) return "-";
+  return `${value.toLocaleString("es-DO", { maximumFractionDigits: 2 })}%`;
+};
+
+const getDiscountDetail = (discount: DiscountItem) => {
+  if (discount.type === "percentage") {
+    return `Descuento de ${formatPercentageValue(discount.value)} sobre el subtotal`;
+  }
+  return `Descuento fijo de ${formatCurrency(discount.value)} aplicado al subtotal`;
+};
+
+const getTaxDetail = (tax: TaxItem) => {
+  if (tax.type === "percentage") {
+    return `Incrementa ${formatPercentageValue(tax.rate)} sobre el subtotal`;
+  }
+  return `Incremento fijo de ${formatCurrency(tax.rate)}`;
 };
 
 export function SellerProductCreatePage() {
@@ -93,13 +100,15 @@ export function SellerProductCreatePage() {
   const categoriesQuery = useCategories({ limit: 500 });
   const availableCategories = categoriesQuery.data?.data ?? [];
 
-  const promotionsQuery = useStorePromotions(storeId, { limit: 100 });
   const discountsQuery = useStoreDiscounts(storeId, { limit: 100 });
   const taxesQuery = useStoreTaxes(storeId, { limit: 100 });
 
-  const availablePromotions = promotionsQuery.data?.data ?? [];
-  const availableDiscounts = discountsQuery.data?.data ?? [];
-  const availableTaxes = taxesQuery.data?.data ?? [];
+  const availableDiscounts = (discountsQuery.data?.data ?? []).filter(
+    (discount) => discount.status === "active"
+  );
+  const availableTaxes = (taxesQuery.data?.data ?? []).filter(
+    (tax) => tax.status === "active"
+  );
 
   const categoryLookup = useMemo(() => {
     const map = new Map<string, string>();
@@ -108,6 +117,22 @@ export function SellerProductCreatePage() {
     });
     return map;
   }, [availableCategories]);
+
+  const taxLookup = useMemo(() => {
+    const map = new Map<string, TaxItem>();
+    availableTaxes.forEach((tax) => {
+      map.set(tax.id, tax);
+    });
+    return map;
+  }, [availableTaxes]);
+
+  const selectedTaxes = useMemo(
+    () =>
+      form.taxes
+        .map((taxId) => taxLookup.get(taxId))
+        .filter((tax): tax is TaxItem => Boolean(tax)),
+    [form.taxes, taxLookup]
+  );
 
   const selectedCategoryOptions = useMemo(
     () =>
@@ -139,25 +164,78 @@ export function SellerProductCreatePage() {
 
   const selectedDiscount = useMemo(() => {
     if (!form.discountId) return undefined;
-    return availableDiscounts.find(
-      (discount) => discount.id === form.discountId
-    );
+    return availableDiscounts.find((discount) => discount.id === form.discountId);
   }, [availableDiscounts, form.discountId]);
 
-  const computedFinalPrice = useMemo(() => {
-    if (!form.price) return 0;
-    const parsed = Number(form.price);
-    if (Number.isNaN(parsed)) return 0;
+  const pricePreview = useMemo<{ steps: PricePreviewStep[]; total: number }>(() => {
+    const steps: PricePreviewStep[] = [];
+    const hasInputPrice = form.price.trim().length > 0;
+    const inputPrice = Number(form.price);
+    const sanitizedBase =
+      hasInputPrice && !Number.isNaN(inputPrice) ? Math.max(inputPrice, 0) : 0;
 
-    if (!selectedDiscount) return parsed;
+    let subtotal = sanitizedBase;
 
-    const discountValue =
-      selectedDiscount.type === "percentage"
-        ? (parsed * selectedDiscount.value) / 100
-        : selectedDiscount.value;
+    steps.push({
+      id: "base",
+      label: "Precio base",
+      change: 0,
+      total: subtotal,
+      kind: "base",
+      detail: hasInputPrice
+        ? "Precio ingresado en el formulario"
+        : "Ingresa un precio para estimar el total",
+    });
 
-    return Math.max(parsed - discountValue, 0);
-  }, [form.discountId, form.price, selectedDiscount]);
+    if (selectedDiscount) {
+      const before = subtotal;
+      const changeAmount =
+        selectedDiscount.type === "percentage"
+          ? -((before * selectedDiscount.value) / 100)
+          : -selectedDiscount.value;
+      subtotal = Math.max(before + changeAmount, 0);
+      steps.push({
+        id: `discount-${selectedDiscount.id}`,
+        label: `Descuento: ${selectedDiscount.name}`,
+        change: changeAmount,
+        total: subtotal,
+        kind: "discount",
+        detail: getDiscountDetail(selectedDiscount),
+      });
+    }
+
+    let runningTotal = subtotal;
+
+    selectedTaxes.forEach((tax) => {
+      const before = runningTotal;
+      const changeAmount =
+        tax.type === "percentage" ? (before * tax.rate) / 100 : tax.rate;
+      runningTotal = Math.max(before + changeAmount, 0);
+      steps.push({
+        id: `tax-${tax.id}`,
+        label: `Impuesto: ${tax.name}`,
+        change: changeAmount,
+        total: runningTotal,
+        kind: "tax",
+        detail: getTaxDetail(tax),
+      });
+    });
+
+    steps.push({
+      id: "total",
+      label: "Total estimado",
+      change: 0,
+      total: runningTotal,
+      kind: "total",
+    });
+
+    return { steps, total: runningTotal };
+  }, [form.price, selectedDiscount, selectedTaxes]);
+
+  const priceSteps = pricePreview.steps;
+  const computedFinalPrice = Number.isFinite(pricePreview.total)
+    ? pricePreview.total
+    : Math.max(Number(form.price) || 0, 0);
 
   const mutation = useMutation({
     mutationFn: async (payload: CreateProductPayload) => {
@@ -211,16 +289,6 @@ export function SellerProductCreatePage() {
     }));
   }, []);
 
-  const handlePromotionToggle = useCallback((promotionId: string) => {
-    setForm((prev) => {
-      const exists = prev.promotionIds.includes(promotionId);
-      const promotionIds = exists
-        ? prev.promotionIds.filter((id) => id !== promotionId)
-        : [...prev.promotionIds, promotionId];
-      return { ...prev, promotionIds };
-    });
-  }, []);
-
   const handleTaxToggle = useCallback((taxId: string) => {
     setForm((prev) => {
       const exists = prev.taxes.includes(taxId);
@@ -243,9 +311,7 @@ export function SellerProductCreatePage() {
     if (!file) return;
 
     if (imageUrls.length >= MAX_PRODUCT_IMAGES) {
-      toast.error(
-        `Solo puedes subir ${MAX_PRODUCT_IMAGES} imagenes por producto`
-      );
+      toast.error(`Solo puedes subir ${MAX_PRODUCT_IMAGES} imagenes por producto`);
       event.target.value = "";
       return;
     }
@@ -284,14 +350,11 @@ export function SellerProductCreatePage() {
       name: form.name.trim(),
       description,
       price: Number(form.price) || 0,
-      priceFinal: Number.isFinite(computedFinalPrice)
-        ? computedFinalPrice
-        : Number(form.price) || 0,
+      priceFinal: computedFinalPrice,
       stock: Number(form.stock) || 0,
       storeId,
       categories: form.categories,
       taxes: form.taxes,
-      promotionIds: form.promotionIds,
       discountId: form.discountId ?? null,
       images: imageUrls,
       sku: form.sku.trim() || undefined,
@@ -338,9 +401,7 @@ export function SellerProductCreatePage() {
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Crear producto
-          </h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Crear producto</h1>
           <p className="text-sm text-muted-foreground">
             Completa los detalles para publicar un nuevo producto en tu tienda.
           </p>
@@ -375,6 +436,7 @@ export function SellerProductCreatePage() {
                       }))
                     }
                     placeholder="Ej. iPhone 15 Pro Max"
+                    required
                   />
                 </div>
                 <div className="space-y-2">
@@ -396,73 +458,19 @@ export function SellerProductCreatePage() {
               <div className="space-y-2">
                 <Label htmlFor="product-description">Descripcion *</Label>
                 <div className="rounded-md border">
-                  <Editor
-                    ref={editorRef}
-                    placeholder="Describe tu producto..."
-                  />
+                  <Editor ref={editorRef} placeholder="Describe tu producto..." />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base font-semibold">
-                Inventario y precios
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Define el precio base y la cantidad disponible.
-              </p>
-            </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="product-price">Precio base *</Label>
-                <Input
-                  id="product-price"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={form.price}
-                  onChange={(event) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      price: event.target.value,
-                    }))
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="product-stock">Inventario *</Label>
-                <Input
-                  id="product-stock"
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={form.stock}
-                  onChange={(event) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      stock: event.target.value,
-                    }))
-                  }
-                />
-              </div>
-              <div className="md:col-span-2">
-                <p className="text-sm font-medium text-foreground">
-                  Precio final estimado
-                </p>
-                <p className="text-2xl font-semibold text-primary">
-                  {formatCurrency(
-                    Number.isFinite(computedFinalPrice) ? computedFinalPrice : 0
-                  )}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  El precio final se calcula automaticamente considerando
-                  impuestos, promociones y descuentos activos.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          <PriceInventory
+            form={form}
+            setForm={setForm}
+            currencyFormatter={currencyFormatter}
+            formatCurrency={formatCurrency}
+            priceSteps={priceSteps}
+          />
 
           <Card>
             <CardHeader>
@@ -560,46 +568,6 @@ export function SellerProductCreatePage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Promociones</Label>
-                {availablePromotions.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">
-                    Aun no registras promociones en tu tienda.
-                  </p>
-                ) : (
-                  <div className="space-y-2 rounded-md border border-dashed border-border/60 bg-muted/30 p-3">
-                    {availablePromotions.map((promotion) => (
-                      <label
-                        key={promotion.id}
-                        className="flex items-start justify-between gap-3 text-sm"
-                      >
-                        <span className="flex-1">
-                          <span className="font-medium text-foreground">
-                            {promotion.name}
-                          </span>
-                          <span className="block text-xs text-muted-foreground">
-                            {promotion.type === "coupon" && promotion.code
-                              ? `Codigo ${promotion.code}`
-                              : promotion.value !== null &&
-                                promotion.value !== undefined
-                              ? promotion.type === "automatic"
-                                ? `Valor ${promotion.value}%`
-                                : `Valor ${promotion.value}`
-                              : "Sin valor definido"}
-                          </span>
-                        </span>
-                        <input
-                          type="checkbox"
-                          className="mt-1 h-4 w-4"
-                          checked={form.promotionIds.includes(promotion.id)}
-                          onChange={() => handlePromotionToggle(promotion.id)}
-                        />
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-2">
                 <Label htmlFor="product-discount">Descuento</Label>
                 <select
                   id="product-discount"
@@ -664,96 +632,25 @@ export function SellerProductCreatePage() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base font-semibold">
-                Imagenes del producto
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Carga hasta {MAX_PRODUCT_IMAGES} imagenes en formato JPG o PNG.
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Vista previa</span>
-                <span>
-                  {imageUrls.length}/{MAX_PRODUCT_IMAGES} seleccionadas
-                </span>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                {imageUrls.map((url) => (
-                  <div
-                    key={url}
-                    className="relative overflow-hidden rounded-md border"
-                  >
-                    <img
-                      src={getImageUrl(url)}
-                      alt="Imagen del producto"
-                      className="h-44 w-full object-cover"
-                    />
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="icon"
-                      className="absolute right-2 top-2 h-7 w-7 rounded-full"
-                      onClick={() => handleRemoveImage(url)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-
-                {imageUrls.length < MAX_PRODUCT_IMAGES && (
-                  <label
-                    htmlFor="image-upload"
-                    className="flex h-44 cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed text-center text-sm text-muted-foreground transition hover:border-primary"
-                  >
-                    <UploadCloud className="h-6 w-6" />
-                    <span className="mt-2">Subir imagen</span>
-                    <span className="text-[11px] text-muted-foreground">
-                      PNG, JPG o WebP
-                    </span>
-                    <Input
-                      id="image-upload"
-                      type="file"
-                      accept="image/*"
-                      className="sr-only"
-                      onChange={handleImageUpload}
-                      disabled={isUploading}
-                    />
-                  </label>
-                )}
-
-                {imageUrls.length === 0 && (
-                  <div className="flex h-44 flex-col items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">
-                    <ImageIcon className="h-6 w-6" />
-                    <span className="mt-2">Aun no has subido imagenes</span>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          <UploadImages
+            imageUrls={imageUrls}
+            handleImageUpload={handleImageUpload}
+            handleRemoveImage={handleRemoveImage}
+            isUploading={isUploading}
+            getImageUrl={getImageUrl}
+          />
         </div>
       </div>
 
       <div className="mt-8 flex flex-col gap-3 border-t pt-6 sm:flex-row sm:justify-end">
-        <Button
-          type="button"
-          variant="outline"
-          asChild
-          className="w-full sm:w-auto"
-        >
+        <Button type="button" variant="outline" asChild className="w-full sm:w-auto">
           <Link to="/dashboard/seller/products">Cancelar</Link>
         </Button>
-        <Button
-          type="submit"
-          disabled={mutation.isPending}
-          className="w-full sm:w-auto"
-        >
+        <Button type="submit" disabled={mutation.isPending} className="w-full sm:w-auto">
           {mutation.isPending ? "Creando..." : "Crear producto"}
         </Button>
       </div>
     </form>
   );
 }
+
