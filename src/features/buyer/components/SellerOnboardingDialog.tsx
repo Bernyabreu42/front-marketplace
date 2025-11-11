@@ -221,7 +221,7 @@ export function SellerOnboardingDialog({
               <Label htmlFor="store-country">Pais</Label>
               <Input
                 id="store-country"
-                value={form.address.country}
+                value={form.address.country ?? ""}
                 onChange={(event) =>
                   setForm((prev) => ({
                     ...prev,
@@ -236,7 +236,7 @@ export function SellerOnboardingDialog({
               <Label htmlFor="store-city">Ciudad</Label>
               <Input
                 id="store-city"
-                value={form.address.city}
+                value={form.address.city ??""}
                 onChange={(event) =>
                   setForm((prev) => ({
                     ...prev,
@@ -254,7 +254,7 @@ export function SellerOnboardingDialog({
               <Label htmlFor="store-state">Estado/Provincia</Label>
               <Input
                 id="store-state"
-                value={form.address.state}
+                value={form.address.state ??""}
                 onChange={(event) =>
                   setForm((prev) => ({
                     ...prev,
@@ -269,7 +269,7 @@ export function SellerOnboardingDialog({
               <Label htmlFor="store-postal">Codigo postal</Label>
               <Input
                 id="store-postal"
-                value={form.address.postalCode}
+                value={form.address.postalCode ??""}
                 onChange={(event) =>
                   setForm((prev) => ({
                     ...prev,
@@ -289,7 +289,7 @@ export function SellerOnboardingDialog({
             <Label htmlFor="store-street">Calle y numero</Label>
             <Input
               id="store-street"
-              value={form.address.street}
+              value={form.address.street ??""}
               onChange={(event) =>
                 setForm((prev) => ({
                   ...prev,
@@ -305,7 +305,7 @@ export function SellerOnboardingDialog({
             <Label htmlFor="store-note">Referencia (opcional)</Label>
             <Input
               id="store-note"
-              value={form.address.note}
+              value={form.address.note ??""}
               onChange={(event) =>
                 setForm((prev) => ({
                   ...prev,

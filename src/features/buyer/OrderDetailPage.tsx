@@ -103,7 +103,7 @@ export function BuyerOrderDetailPage() {
   };
 
   const resolveUnitPrice = (item: (typeof order.items)[number]) => {
-    if (typeof item.unitPriceFinal === "number") return item.unitPriceFinal;
+    if (typeof item.unitPriceFinal === "number") return item.unitPriceFinal ;
     if (typeof item.unitPrice === "number") return item.unitPrice;
     return item.product?.priceFinal ?? item.product?.price ?? 0;
   };

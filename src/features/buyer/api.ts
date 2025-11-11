@@ -26,7 +26,7 @@ export const fetchLoyaltyAccount = (params?: { limit?: number }) =>
   });
 
 export const fetchFavorites = (params?: FavoritesQuery) =>
-  apiFetch<FavoritesResponse>("/api/favorites", { query: params });
+  apiFetch<FavoritesResponse>("/api/favorites", { query: params as any });
 
 export const removeFavorite = (productId: string) =>
   apiFetch<FavoriteMessageResponse>(`/api/favorites/${productId}`, {

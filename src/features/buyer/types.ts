@@ -1,6 +1,7 @@
 import type { ApiResponse, PaginatedResponse } from "@/features/users/types";
 
 export interface OrderProduct {
+  sku: any;
   id: string;
   name: string;
   price: number;
@@ -9,6 +10,9 @@ export interface OrderProduct {
 }
 
 export interface OrderItem {
+  productId: string;
+  unitPrice: any;
+  unitPriceFinal: any;
   id: string;
   quantity: number;
   product: OrderProduct;
@@ -33,12 +37,18 @@ export interface OrderSummary {
 export type OrdersResponse = PaginatedResponse<OrderSummary>;
 
 export interface OrderUser {
+  phone: string;
   id: string;
   firstName: string | null;
   email: string;
 }
 
 export interface Order {
+  shippingAmount: number;
+  taxAmount: number;
+  totalDiscountAmount: number;
+  subtotal: number | bigint;
+  shippingAddress: {};
   id: string;
   userId: string;
   storeId: string;

@@ -12,7 +12,6 @@ import { Link } from "react-router-dom";
 const statusLabel: Record<OrderStatus, string> = {
   pending: "Pendiente",
   processing: "Procesando",
-  paid: "Pagada",
   shipped: "Enviada",
   completed: "Completada",
   cancelled: "Cancelada",
@@ -21,7 +20,6 @@ const statusLabel: Record<OrderStatus, string> = {
 const statusBadgeClass: Record<OrderStatus, string> = {
   pending: "bg-amber-100 text-amber-700",
   processing: "bg-blue-100 text-blue-700",
-  paid: "bg-emerald-100 text-emerald-700",
   shipped: "bg-indigo-100 text-indigo-700",
   completed: "bg-emerald-200 text-emerald-800",
   cancelled: "bg-rose-100 text-rose-700",

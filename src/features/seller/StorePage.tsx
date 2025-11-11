@@ -307,6 +307,8 @@ export function SellerStorePage() {
     },
   });
 
+  type EditableField = Exclude<keyof StoreFormState, "address">;
+
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setFeedback(null);
@@ -328,12 +330,13 @@ export function SellerStorePage() {
         return;
       }
 
-      const formValue = sanitizeString(form[key] as string | null | undefined);
+      const typedKey = key as EditableField;
+      const formValue = sanitizeString(form[typedKey]);
       const original = sanitizeString(
-        store?.[key as keyof StoreDetail] as string | null | undefined
+        store?.[typedKey] as string | null | undefined
       );
       if (formValue !== original) {
-        payload[key as keyof StoreDetail] = formValue;
+        payload[typedKey] = formValue as StoreDetail[EditableField] ?? "";
       }
     });
 
@@ -501,7 +504,7 @@ export function SellerStorePage() {
                     <Label htmlFor="store-address">Address</Label>
                     <Input
                       id="store-address"
-                      value={form.address.street}
+                      value={form.address.street ?? ""}
                       onChange={(e) =>
                         setForm((prev) => ({
                           ...prev,
@@ -698,7 +701,7 @@ export function SellerStorePage() {
                     <Label htmlFor="country">Country</Label>
                     <Input
                       id="country"
-                      value={form.address.country}
+                      value={form.address.country ?? ""}
                       onChange={(e) =>
                         setForm((prev) => ({
                           ...prev,
@@ -712,7 +715,7 @@ export function SellerStorePage() {
                     <Label htmlFor="city">City</Label>
                     <Input
                       id="city"
-                      value={form.address.city}
+                      value={form.address.city ?? ""}
                       onChange={(e) =>
                         setForm((prev) => ({
                           ...prev,
@@ -729,7 +732,7 @@ export function SellerStorePage() {
                     <Label htmlFor="state">State/Province</Label>
                     <Input
                       id="state"
-                      value={form.address.state}
+                      value={form.address.state ?? ""}
                       onChange={(e) =>
                         setForm((prev) => ({
                           ...prev,
@@ -743,7 +746,7 @@ export function SellerStorePage() {
                     <Label htmlFor="postalCode">Postal Code</Label>
                     <Input
                       id="postalCode"
-                      value={form.address.postalCode}
+                      value={form.address.postalCode ?? ""}
                       onChange={(e) =>
                         setForm((prev) => ({
                           ...prev,
@@ -763,7 +766,7 @@ export function SellerStorePage() {
                     <Label htmlFor="street">Street</Label>
                     <Input
                       id="street"
-                      value={form.address.street}
+                      value={form.address.street ?? ""}
                       onChange={(e) =>
                         setForm((prev) => ({
                           ...prev,
@@ -777,7 +780,7 @@ export function SellerStorePage() {
                     <Label htmlFor="note">Note</Label>
                     <Input
                       id="note"
-                      value={form.address.note}
+                      value={form.address.note ?? ""}
                       onChange={(e) =>
                         setForm((prev) => ({
                           ...prev,
